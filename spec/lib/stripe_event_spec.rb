@@ -33,6 +33,38 @@ describe StripeEvent do
     end
   end
 
+  describe "subscribing to multiple event types" do
+    before do
+      expect(charge_succeeded).to receive(:[]).with(:type).and_return('charge.succeeded')
+      expect(Stripe::Event).to receive(:retrieve).with('evt_charge_succeeded').and_return(charge_succeeded)
+
+      expect(charge_failed).to receive(:[]).with(:type).and_return('charge.failed')
+      expect(Stripe::Event).to receive(:retrieve).with('evt_charge_failed').and_return(charge_failed)
+    end
+
+    context "with a block subscriber" do
+      it "calls the subscriber with the retrieved event" do
+        StripeEvent.subscribe('charge.succeeded', 'charge.failed', &subscriber)
+
+        StripeEvent.instrument(id: 'evt_charge_failed', type: 'charge.failed')
+        StripeEvent.instrument(id: 'evt_charge_succeeded', type: 'charge.succeeded')
+
+        expect(events).to eq [charge_failed, charge_succeeded]
+      end
+    end
+
+    context "with a subscriber that responds to #call" do
+      it "calls the subscriber with the retrieved event" do
+        StripeEvent.subscribe('charge.succeeded', 'charge.failed', subscriber)
+
+        StripeEvent.instrument(id: 'evt_charge_failed', type: 'charge.failed')
+        StripeEvent.instrument(id: 'evt_charge_succeeded', type: 'charge.succeeded')
+
+        expect(events).to eq [charge_failed, charge_succeeded]
+      end
+    end
+  end
+
   describe "subscribing to all event types" do
     before do
       expect(charge_succeeded).to receive(:[]).with(:type).and_return('charge.succeeded')
