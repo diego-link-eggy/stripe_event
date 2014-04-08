@@ -4,7 +4,9 @@ module StripeEvent
       StripeEvent.instrument(params)
       head :ok
     rescue StripeEvent::UnauthorizedError
-      head :unauthorized
+    	head :ok
+
+	    #head Rails.env.production? ? :unauthorized : :ok
     end
   end
 end
